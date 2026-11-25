@@ -1,0 +1,34 @@
+# folders
+build
+godot-cpp
+
+# godot project
+project/.godot
+project/.editorconfig
+
+# ide
+.vs
+.vscode
+.idea
+.cache
+*.user
+*.userosps
+*.sln
+*.vcxproj*
+
+# files
+CMakeUserPresets.json
+*.o
+*.obj
+*.a
+*.lib
+*.so
+*.so.*
+*.dylib
+*.dll
+*.exe
+*.out
+*.app
+*.i
+*.ii
+*.s
