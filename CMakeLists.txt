@@ -21,7 +21,7 @@ target_sources(${TARGET_NAME} PRIVATE
     ${SRC}
 )
 
-set(OUTPUT_DIR "${PROJECT_SOURCE_DIR}/project/bin/")
+set(OUTPUT_DIR "${PROJECT_SOURCE_DIR}/project/addons/vehicle_shapecast/bin/")
 
 target_include_directories(${TARGET_NAME} PUBLIC
     ${PROJECT_SOURCE_DIR}/include

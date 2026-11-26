@@ -1,6 +1,5 @@
 # folders
 /build
-/godot-cpp
 .scons-cache
 
 # godot project

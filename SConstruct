@@ -2,10 +2,6 @@
 import os
 import sys
 
-if not os.path.exists("godot-cpp"):
-    print("Cloning godot-cpp...")
-    os.system("git clone https://github.com/godotengine/godot-cpp.git")
-
 env = SConscript("godot-cpp/SConstruct")
 
 sources = Glob("src/*.cpp")
