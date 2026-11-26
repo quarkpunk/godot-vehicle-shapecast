@@ -1,0 +1,69 @@
+name: Build and Package
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { platform: linux,   arch: x86_64,    os: ubuntu-22.04 }
+          - { platform: windows, arch: x86_64,    os: windows-latest }
+          - { platform: macos,   arch: universal, os: macos-latest }
+        target-type: [template_debug, template_release]
+
+    runs-on: ${{ matrix.target.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install SCons
+        run: pip install scons
+
+      - name: Build
+        shell: bash
+        run: |
+          scons platform=${{ matrix.target.platform }} arch=${{ matrix.target.arch }} target=${{ matrix.target-type }} api_version=4.7
+
+      - name: Upload binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: bin-${{ matrix.target.platform }}-${{ matrix.target.arch }}-${{ matrix.target-type }}
+          path: project/addons/vehicle_shapecast/bin/
+          if-no-files-found: error
+
+  package:
+    runs-on: ubuntu-22.04
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all binaries
+        uses: actions/download-artifact@v4
+        with:
+          pattern: bin-*
+          path: project/addons/vehicle_shapecast/bin/
+          merge-multiple: true
+
+      - name: Create ZIP
+        run: |
+          mkdir -p release
+          mkdir -p release/addons
+          cp -r project/addons/vehicle_shapecast release/addons/
+          cd release
+          zip -r ../vehicle_shapecast.zip addons/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: vehicle_shapecast-addon
+          path: vehicle_shapecast.zip
