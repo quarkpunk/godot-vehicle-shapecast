@@ -1,10 +1,11 @@
 # folders
-build
-godot-cpp
+/build
+.scons-cache
 
 # godot project
-project/.godot
-project/.editorconfig
+/project/.godot
+/project/.editorconfig
+/project/addons/vehicle_shapecast/bin
 
 # ide
 .vs
@@ -17,6 +18,7 @@ project/.editorconfig
 *.vcxproj*
 
 # files
+.sconsign.dblite
 CMakeUserPresets.json
 *.o
 *.obj
@@ -32,3 +34,4 @@ CMakeUserPresets.json
 *.i
 *.ii
 *.s
+*.os

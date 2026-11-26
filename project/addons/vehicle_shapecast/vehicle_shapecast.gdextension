@@ -1,0 +1,12 @@
+[configuration]
+entry_symbol = "vehicle_shapecast_library_init"
+compatibility_minimum = "4.7"
+compatibility_maximum = "4.7"
+
+[libraries]
+linux.debug.x86_64 = "res://addons/vehicle_shapecast/bin/libvehicle_shapecast.linux.template_debug.x86_64.so"
+linux.release.x86_64 = "res://addons/vehicle_shapecast/bin/libvehicle_shapecast.linux.template_release.x86_64.so"
+windows.debug.x86_64 = "res://addons/vehicle_shapecast/bin/vehicle_shapecast.windows.template_debug.x86_64.dll"
+windows.release.x86_64 = "res://addons/vehicle_shapecast/bin/vehicle_shapecast.windows.template_release.x86_64.dll"
+macos.debug = "res://addons/vehicle_shapecast/bin/libvehicle_shapecast.macos.template_debug.universal.dylib"
+macos.release = "res://addons/vehicle_shapecast/bin/libvehicle_shapecast.macos.template_release.universal.dylib"
