@@ -28,7 +28,7 @@ void Wheel::_ready() {
     }
 
     // build wheel geometry
-    update_shape_geometry();
+    _update_shape_geometry();
 
     if (vehicle) {
         add_exception(vehicle);
@@ -37,17 +37,17 @@ void Wheel::_ready() {
 
 void Wheel::set_wheel_segments(int value) {
     wheel_segments = Math::max(3, value);
-    update_shape_geometry();
+    _update_shape_geometry();
 }
 
 void Wheel::set_wheel_radius(float p_radius) {
     wheel_radius = Math::max(0.05f, p_radius);
-    update_shape_geometry();
+    _update_shape_geometry();
 }
 
 void Wheel::set_wheel_width(float p_width) {
     wheel_width = Math::max(0.05f, p_width);
-    update_shape_geometry();
+    _update_shape_geometry();
 }
 
 void Wheel::set_suspension_length(float p_length) {
@@ -64,7 +64,7 @@ void Wheel::set_steering_angle(float p_angle_rad) {
     set_rotation(rot);
 }
 
-void Wheel::update_shape_geometry() {
+void Wheel::_update_shape_geometry() {
     Ref<ConvexPolygonShape3D> poly = get_shape();
     if (poly.is_null()) {
         poly.instantiate();
@@ -89,9 +89,16 @@ void Wheel::update_shape_geometry() {
     set_target_position(Vector3(0.0f, -(suspension_length + shapecast_offset), 0.0f));
 }
 
+// pacejka magic formula
+float Wheel::_pacejka(float slip, float B, float C, float D, float E) {
+    if (D <= 0.0f || Math::abs(slip) < 1e-6f) return 0.0f;
+    float Bx = B * slip;
+    return D * Math::sin(C * Math::atan(Bx - E * (Bx - Math::atan(Bx))));
+}
+
 // top-down safety raycast if the wheel falls under the terrain or gets stuck in a wall
 // the beam finds the surface and returns the wheel to the top
-bool Wheel::_raycast_rescue(Vector3 &out_ground_point, Vector3 &out_ground_normal) {
+bool Wheel::_raycast_height(Vector3 &out_ground_point, Vector3 &out_ground_normal) {
     PhysicsDirectSpaceState3D *space = get_world_3d()->get_direct_space_state();
     if (!space) {
         return false;
@@ -160,7 +167,7 @@ void Wheel::process_wheel_physics(double delta, float drive_torque, float brake_
     int ground_hits = 0;
     int wall_hits = 0;
 
-    // calculate contact ponts
+    // calculate contact points
     for (int i = 0; i < hit_count; ++i) {
         Vector3 n = get_collision_normal(i);
         Vector3 p = get_collision_point(i);
@@ -256,7 +263,7 @@ void Wheel::process_wheel_physics(double delta, float drive_torque, float brake_
     // check for subsidence under the collision/terrain
     // if ShapeCast cant see the ground OR the wheel is deeper than ground
     Vector3 rescue_point, rescue_normal;
-    if (_raycast_rescue(rescue_point, rescue_normal)) {
+    if (_raycast_height(rescue_point, rescue_normal)) {
         float slope = Math::acos(Math::clamp(rescue_normal.dot(Vector3::UP), -1.0f, 1.0f));
 
         if (slope <= max_slope_rad) {
@@ -326,84 +333,106 @@ void Wheel::process_wheel_physics(double delta, float drive_torque, float brake_
     float spring_force = effective_comp * (spring_stiffness * stiffness_mult) + filtered_comp_vel * eff_damper;
     spring_force = Math::clamp(spring_force, 0.0f, vehicle_mass * 20.0f);
 
-    Vector3 force_offset = ground_point - vehicle->get_global_position();
+    const Vector3 force_offset = ground_point - vehicle->get_global_position();
+
     vehicle->apply_force(ground_normal * spring_force, force_offset);
 
     // vectors of motion in the ground plane
-    Vector3 forward_ground = (wheel_forward - ground_normal * wheel_forward.dot(ground_normal)).normalized();
-    Vector3 right_ground = (wheel_right - ground_normal * wheel_right.dot(ground_normal)).normalized();
-    Vector3 point_vel = vehicle->get_linear_velocity() + vehicle->get_angular_velocity().cross(force_offset);
-    float forward_speed = point_vel.dot(forward_ground);
-    float lateral_speed = point_vel.dot(right_ground);
+    const Vector3 forward_ground = (wheel_forward - ground_normal * wheel_forward.dot(ground_normal)).normalized();
+    const Vector3 right_ground = (wheel_right - ground_normal * wheel_right.dot(ground_normal)).normalized();
+    const Vector3 point_vel = vehicle->get_linear_velocity() + vehicle->get_angular_velocity().cross(force_offset);
+    const float forward_speed = point_vel.dot(forward_ground);
+    const float lateral_speed = point_vel.dot(right_ground);
 
-    // effective tire load (considering the contact patch)
-    // even with light contact, the tread grips the ground (at least 35% of the static wheel load)
-    float static_wheel_load = mass_per_wheel * 9.81f;
-    float contact_patch_preload = static_wheel_load * 0.35f;
-    float effective_load = Math::max(spring_force, contact_patch_preload);
+    // effective load on tire
+    const float static_wheel_load = mass_per_wheel * 9.81f;
+    const float contact_patch_preload = static_wheel_load * 0.35f;
+    const float effective_load = Math::max(spring_force, contact_patch_preload);
 
-    // increased grip at low speeds
-    float speed_sq = point_vel.length_squared();
-    float offroad_grip_boost = (speed_sq < 6.0f) ? Math::lerp(1.65f, 1.0f, speed_sq / 6.0f) : 1.0f;
+    // increased grip (at very low speed)
+    const float speed_sq = point_vel.length_squared();
+    const float offroad_grip_boost = (speed_sq < 4.0f) ? Math::lerp(1.4f, 1.0f, speed_sq / 4.0f) : 1.0f;
 
-    // lateral grip
-    float slip_ratio = Math::abs(lateral_speed) / Math::max(Math::abs(forward_speed), 0.35f);
+    // maximum peak grip forces of tire
+    float D_lat = effective_load * lateral_grip * offroad_grip_boost;
+    float D_lon = effective_load * forward_grip * offroad_grip_boost;
 
-    // steeper approach to the peak of grip - the tire immediately "rests" with its sidewall on the ground
-    const float lat_curve = Math::sin(Math::min<float>(slip_ratio * 3.5f, Math::PI * 0.5f));
-    const float lat_cancel = (mass_per_wheel * Math::abs(lateral_speed)) / d;
-    const float max_lat_force = effective_load * lateral_grip * offroad_grip_boost * lat_curve;
-    float F_lat = -Math::sign(lateral_speed) * Math::min(max_lat_force, lat_cancel);
-
-    if (Math::abs(lateral_speed) < 0.01f) {
-        F_lat = 0.0f;
-    }
-
-    vehicle->apply_force(right_ground * F_lat, force_offset);
-
-    // longitudinal thrust
-    float F_lon = 0.0f;
+    // calculation of longitudinal force demand (Gas + Brake + Roll)
+    float F_lon_demand = 0.0f;
     bool has_throttle = is_driven && (Math::abs(drive_torque) > 0.001f);
 
     if (has_throttle) {
         float F_traction = drive_torque / wheel_radius;
-        float max_lon_force = effective_load * forward_grip * offroad_grip_boost;
-
-        // reverse while moving
-        // are we trying to move AGAINST the current flow
-        bool is_reversing_motion = (Math::sign(F_traction) != Math::sign(forward_speed)) 
-                                && (Math::abs(forward_speed) > 0.1f);
-
-        if (is_reversing_motion) {
-            // when shifting into reverse, the tread acts as a powerful brake and traction
-            // we increase the traction limit by 1.8 times and increase the torque to instantly eliminate inertia
-            float reverse_max_force = max_lon_force * 1.8f;
-            F_lon += Math::clamp(F_traction * 1.5f, -reverse_max_force, reverse_max_force);
-        }
-        else {
-            // normal acceleration in the direction of movement
-            F_lon += Math::clamp(F_traction, -max_lon_force, max_lon_force);
-        }
+        bool is_reversing = (Math::sign(F_traction) != Math::sign(forward_speed)) && (Math::abs(forward_speed) > 0.1f);
+        F_lon_demand += is_reversing ? (F_traction * 1.5f) : F_traction;
     }
 
-    // rolling resistance and brakes
-    // important: if you press the gas, dont let the brakes block acceleration
+    // braking and rolling resistance always work against the current motion (or hold in place)
     float active_brake = has_throttle ? 0.0f : brake_force;
-    float resistance = active_brake + rolling_resistance * spring_force;
+    float total_resistance = active_brake + rolling_resistance * spring_force;
 
     if (Math::abs(forward_speed) > 0.05f) {
-        F_lon -= Math::sign(forward_speed) * resistance;
+        F_lon_demand -= Math::sign(forward_speed) * total_resistance;
     }
     else if (!has_throttle) {
-        float lon_cancel = (mass_per_wheel * Math::abs(forward_speed)) / d;
-        F_lon -= Math::sign(forward_speed) * Math::min(lon_cancel, effective_load * forward_grip);
+        // on a slope with the throttle released or the brake applied
+        // reduce micro-speed, but NOT more than the brake + resistance can handle
+        float stop_demand = (mass_per_wheel * Math::abs(forward_speed)) / d;
+        float max_hold_brake = (brake_force > 0.0f) ? brake_force : (rolling_resistance * spring_force * 4.0f);
+        F_lon_demand -= Math::sign(forward_speed) * Math::min(stop_demand, max_hold_brake);
+    }
+
+    // calculate slip: if the brake is firmly applied (skidding) or the wheel is slipping under the accelerator
+    // slip_ratio increases and goes beyond the peak of the Pacejka curve
+    const float wheel_linear_vel = wheel_angular_velocity * wheel_radius;
+    const float vel_diff = Math::abs(wheel_linear_vel - forward_speed);
+    const float slip_ratio = vel_diff / Math::max(Math::abs(forward_speed), 0.5f);
+
+    // we also take into account the load from the power demand
+    // (when the car is on a steep slope and is pulled down)
+    const float load_slip = (Math::abs(F_lon_demand) / Math::max(D_lon, 1.0f)) * 0.2f;
+    const float total_lon_slip = Math::max(slip_ratio, load_slip);
+
+    // the Pacejka curve determines how much longitudinal force a tire can actually transmit to the ground
+    float pacejka_lon_cap = _pacejka(total_lon_slip, pacejka_B, pacejka_C, D_lon, pacejka_E);
+
+    // when sliding heavily (skidding on a slope)
+    // the grip drops to 55% of its peak car realistically crawls downhill
+    if (total_lon_slip > 0.25f) {
+        pacejka_lon_cap = Math::max(pacejka_lon_cap, D_lon * 0.55f);
+    }
+    else {
+        // in low slip zone, the tire can hold up to the peak D_lon
+        pacejka_lon_cap = Math::max(pacejka_lon_cap, Math::min(Math::abs(F_lon_demand), D_lon));
+    }
+
+    float F_lon = Math::clamp(F_lon_demand, -pacejka_lon_cap, pacejka_lon_cap);
+    
+    // Pacejka formula for LATERAL clutch + friction circle
+    const float slip_denom = Math::max(Math::abs(forward_speed), 0.4f);
+    const float slip_angle = Math::atan2(Math::abs(lateral_speed), slip_denom);
+    float pacejka_lat_cap = _pacejka(slip_angle, pacejka_B, pacejka_C, D_lat, pacejka_E);
+
+    // friction circle
+    // if the tire is already heavily loaded longitudinally (skidding or spinning)
+    // lateral grip decreases proportionally (the car starts to slide sideways down the slope)
+    const float lon_usage = Math::clamp(Math::abs(F_lon) / Math::max(D_lon, 1.0f), 0.0f, 0.95f);
+    const float friction_circle_mult = Math::sqrt(1.0f - lon_usage * lon_usage * 0.75f);
+    pacejka_lat_cap *= friction_circle_mult;
+
+    float lat_cancel = (mass_per_wheel * Math::abs(lateral_speed)) / d;
+    float F_lat = -Math::sign(lateral_speed) * Math::min(pacejka_lat_cap, lat_cancel);
+    
+    if (Math::abs(lateral_speed) < 0.01f) {
+        F_lat = 0.0f;
     }
 
     vehicle->apply_force(forward_ground * F_lon, force_offset);
+    vehicle->apply_force(right_ground * F_lat, force_offset);
 
     // 5. wheel visual mesh update
-    float target_y = -suspension_length * (1.0f - current_compression);
-    float target_ang_vel = forward_speed / wheel_radius;
+    const float target_y = -suspension_length * (1.0f - current_compression);
+    const float target_ang_vel = forward_speed / wheel_radius;
     process_wheel_visual(d, target_y, target_ang_vel, rescued_by_ray);
 }
 

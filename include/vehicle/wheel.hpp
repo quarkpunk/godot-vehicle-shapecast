@@ -18,12 +18,12 @@ private:
     float shapecast_offset = 0.25f;
     float max_slope_angle_deg = 90.0f;
 
-    float damper_stiffness = 4500.0f;
+    float damper_stiffness = 3700.0f;
     float spring_stiffness = 35000.0f;
     float spring_stiffness_progression = 0.5f;
-    float rebound_damper_multiplier = 2.2f;
+    float rebound_damper_multiplier = 1.8f;
 
-    float lateral_grip = 1.65f;
+    float lateral_grip = 1.2f;
     float forward_grip = 1.80f;
     float rolling_resistance = 0.025f;
 
@@ -40,14 +40,19 @@ private:
     bool is_left_wheel = true;
     bool was_colliding = false;
 
+    float pacejka_B = 10.5f;
+    float pacejka_C = 1.45f;
+    float pacejka_E = 0.2f;
+
     Vehicle* vehicle = nullptr;
     Node3D* wheel_mesh = nullptr;
     Basis wheel_mesh_basis = {};
     double spin_angle = 0.0;
     float wheel_angular_velocity = 0.0f;
 
-    void update_shape_geometry();
-    bool _raycast_rescue(Vector3 &out_ground_point, Vector3 &out_ground_normal);
+    void _update_shape_geometry();
+    bool _raycast_height(Vector3 &out_ground_point, Vector3 &out_ground_normal);
+    float _pacejka(float slip, float b, float c, float d, float e);
 
 protected:
     static void _bind_methods();

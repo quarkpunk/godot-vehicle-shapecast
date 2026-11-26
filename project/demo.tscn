@@ -92,10 +92,11 @@ environment = SubResource("Environment_1ehpc")
 steer_speed = 1.4
 max_engine_torque = 4200.0
 max_brake_force = 9000.0
+max_steer_angle_deg = 38.0
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.1443255, 10)
 mass = 3100.0
 center_of_mass_mode = 1
-center_of_mass = Vector3(0, -0.3, 0)
+center_of_mass = Vector3(0, -0.2, 0)
 continuous_cd = true
 linear_damp = 2.1
 angular_damp = 6.5
@@ -103,19 +104,20 @@ angular_damp = 6.5
 [node name="Wheel1" type="Wheel" parent="Vehicle" unique_id=2110496314 node_paths=PackedStringArray("wheel_mesh")]
 wheel_radius = 0.37
 wheel_width = 0.3
-suspension_length = 0.5
-spring_stiffness = 26000.0
+suspension_length = 0.45
+spring_stiffness = 25000.0
 damper_stiffness = 2000.0
-lateral_grip = 2.0
+damper_rebound = 1.4
+lateral_grip = 0.8
 is_steerable = true
 is_driven = false
 camber_droop_deg = 1.0
 camber_compressed = -10.0
 wheel_mesh = NodePath("hummer_wheel")
 process_physics_priority = -1
-transform = Transform3D(0.9999988, 0, 0, 0, 0.9999988, 0, 0, 0, 1, -0.85, 0.2, -1.3999996)
+transform = Transform3D(0.9999988, 0, 0, 0, 0.9999988, 0, 0, 0, 1, -0.85, 0.100000024, -1.35)
 shape = SubResource("ConvexPolygonShape3D_eow3j")
-target_position = Vector3(0, -0.75, 0)
+target_position = Vector3(0, -0.7, 0)
 margin = 0.02
 
 [node name="hummer_wheel" parent="Vehicle/Wheel1" unique_id=1780093234 instance=ExtResource("5_7jktm")]
@@ -124,19 +126,20 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.6000007, 0)
 [node name="Wheel2" type="Wheel" parent="Vehicle" unique_id=1977583920 node_paths=PackedStringArray("wheel_mesh")]
 wheel_radius = 0.37
 wheel_width = 0.3
-suspension_length = 0.5
-spring_stiffness = 26000.0
+suspension_length = 0.45
+spring_stiffness = 25000.0
 damper_stiffness = 2000.0
-lateral_grip = 2.0
+damper_rebound = 1.4
+lateral_grip = 0.8
 is_steerable = true
 is_driven = false
 camber_droop_deg = 1.0
 camber_compressed = -10.0
 wheel_mesh = NodePath("hummer_wheel")
 process_physics_priority = -1
-transform = Transform3D(0.9999988, 0, 0, 0, 0.9999988, 0, 0, 0, 1, 0.85, 0.2, -1.3999996)
+transform = Transform3D(0.9999988, 0, 0, 0, 0.9999988, 0, 0, 0, 1, 0.85, 0.100000024, -1.35)
 shape = SubResource("ConvexPolygonShape3D_j5wjh")
-target_position = Vector3(0, -0.75, 0)
+target_position = Vector3(0, -0.7, 0)
 margin = 0.02
 
 [node name="hummer_wheel" parent="Vehicle/Wheel2" unique_id=1321938870 instance=ExtResource("5_7jktm")]
@@ -145,17 +148,18 @@ transform = Transform3D(-1, 0, 8.742278e-08, 0, 1, 0, -8.742278e-08, 0, -1, 0, -
 [node name="Wheel3" type="Wheel" parent="Vehicle" unique_id=1159596390 node_paths=PackedStringArray("wheel_mesh")]
 wheel_radius = 0.37
 wheel_width = 0.3
-suspension_length = 0.5
-spring_stiffness = 26000.0
+suspension_length = 0.45
+spring_stiffness = 25000.0
 damper_stiffness = 2000.0
-lateral_grip = 2.0
+damper_rebound = 1.4
+lateral_grip = 0.8
 camber_droop_deg = 1.0
 camber_compressed = -10.0
 wheel_mesh = NodePath("hummer_wheel")
 process_physics_priority = -1
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.85, 0.2, 1.2700005)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.85, 0.1, 1.2700005)
 shape = SubResource("ConvexPolygonShape3D_vef74")
-target_position = Vector3(0, -0.75, 0)
+target_position = Vector3(0, -0.7, 0)
 margin = 0.02
 
 [node name="hummer_wheel" parent="Vehicle/Wheel3" unique_id=1935287685 instance=ExtResource("5_7jktm")]
@@ -164,17 +168,18 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.6, 0)
 [node name="Wheel4" type="Wheel" parent="Vehicle" unique_id=768798325 node_paths=PackedStringArray("wheel_mesh")]
 wheel_radius = 0.37
 wheel_width = 0.3
-suspension_length = 0.5
-spring_stiffness = 26000.0
+suspension_length = 0.45
+spring_stiffness = 25000.0
 damper_stiffness = 2000.0
-lateral_grip = 2.0
+damper_rebound = 1.4
+lateral_grip = 0.8
 camber_droop_deg = 1.0
 camber_compressed = -10.0
 wheel_mesh = NodePath("hummer_wheel")
 process_physics_priority = -1
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.85, 0.2, 1.2700005)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.85, 0.1, 1.2700005)
 shape = SubResource("ConvexPolygonShape3D_hve3p")
-target_position = Vector3(0, -0.75, 0)
+target_position = Vector3(0, -0.7, 0)
 margin = 0.02
 
 [node name="hummer_wheel" parent="Vehicle/Wheel4" unique_id=705563778 instance=ExtResource("5_7jktm")]
