@@ -20,6 +20,7 @@
 # files
 .sconsign.dblite
 CMakeUserPresets.json
+*.gdextension.uid
 *.o
 *.obj
 *.a
